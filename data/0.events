@@ -1,0 +1,5 @@
+{:seq 1,
+ :when #inst "2015-05-17T12:41:32.494-00:00",
+ :event :test,
+ :token 1}
+{:seq 2, :when #inst "2015-05-17T12:41:32.534-00:00", :event :replace}
