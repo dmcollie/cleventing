@@ -1,6 +1,7 @@
 (ns cleventing.event-sourcing-test
   (:require [clojure.test :refer :all]
-            [cleventing.event-sourcing :refer :all]))
+            [cleventing.event-sourcing :refer :all]
+            [clojure.java.io :as io]))
 
 (defmethod accept :test
   [world event]
@@ -10,7 +11,15 @@
   [world event]
   :replaced-world)
 
+(defn reset-event-store
+  "Make sure there are no events to hydrate else the first test (hydration) will fail on the second run."
+  [f]
+  (let [current-label 0
+        event-file (io/file "data" (str current-label ".events"))]
+    (spit event-file ""))
+  (f))
 
+(use-fixtures :once reset-event-store)
 (deftest raise!-test
   (testing "hydration"
     (is (= :test-world (hydrate "0"))))
