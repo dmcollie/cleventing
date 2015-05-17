@@ -1,4 +1,4 @@
-(defproject dmcollie/cleventing "0.1.0"
+(defproject dmcollie/cleventing "0.1.0-SNAPSHOT"
   :description "Event Sourcing library forked from https://github.com/timothypratley/cleventing"
   :url "http://www.davidcollie.com"
   :license {:name "Eclipse Public License"
