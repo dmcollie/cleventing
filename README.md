@@ -9,7 +9,7 @@ Note this library forked from https://github.com/timothypratley/cleventing.
 Add cleventing as a `:dependency` in your `project.clj` file.
 
 ```clojure
-[dmcollie/cleventing "0.1.0-SNAPSHOT"]
+[dmcollie/event-sourcing "0.1.0-SNAPSHOT"]
 ```
 
 ## License
