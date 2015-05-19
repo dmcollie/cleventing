@@ -9,13 +9,18 @@
   "Signature for accepting an event, applying it to world.
   This will be implemented by your command/accept pairs.
   Commands check the validity, and raise events.
-  accept performs a data transform, updating the world,
+  accept performs a data transform, updating the aggregate,
   which is called from raise, or when hydrating an event stream."
-  (fn [world event] (:event event)))
+  (fn [event aggregate] (:event event)))
 
-(def world
+(def domain
   "The domain, the state of everything."
-  (atom nil))
+  (atom {}))
+
+(defn get-aggregate
+  "Get the aggregate with the given ID"
+  [id]
+  (get @domain id))
 
 (let [eof (Object.)]
   (defn- read-all
@@ -36,8 +41,8 @@
       events-per-snapshot 20]
 
   (defn snapshot
-    "Switches to a new label and writes out the current world state asynchronously."
-    [world]
+    "Switches to a new label and writes out the current domain state asynchronously."
+    [domain]
     (let [sf (java.text.SimpleDateFormat.
               "yyyy_MM_dd__HH_mm_ss__SSS")
           now (java.util.Date.)
@@ -46,10 +51,10 @@
       (reset! current-label label)
       (reset! event-count 0)
       ; write the snapshot asynchronously on another thread to avoid delays
-      ; the world we are looking at is immutable
+      ; the domain we are looking at is immutable
       (future
         (io! (with-open [w (writer state-file)]
-               (clojure.pprint/pprint world w))))))
+               (clojure.pprint/pprint domain w))))))
 
   (defn- store
     "Writes an event to file"
@@ -58,10 +63,10 @@
       (io! (with-open [w (writer event-file :append true)]
              (clojure.pprint/pprint event w)))
       (when (>= (event :seq) events-per-snapshot)
-        (snapshot @world))))
+        (snapshot @domain))))
 
   (defn hydrate
-    "Load world state and process the event log.
+    "Load domain state and process the event log.
     Specify the event-id for a particular point in time,
     or event-id 0 if you do not want any events applied."
     ([label] (hydrate label nil))
@@ -69,16 +74,16 @@
      (reset! current-label label)
      (io! (with-open [state-reader (data-reader label ".state")
                       event-reader (data-reader label ".events")]
-            (let [world (clojure.edn/read state-reader)
+            (let [snapshot (clojure.edn/read state-reader)
                   all-events (read-all event-reader)
                   events (if event-id
                            (take-while #(<= (% :seq) event-id) all-events)
                            all-events)]
               (reset! event-count (or (:seq (last events)) 0))
-              (reduce accept world events))))))
+              (reduce #(assoc %1 (:aggregate-id %2) (accept %2 (get-aggregate (:aggregate-id %2)))) snapshot events))))))
 
   (defn hydrate-latest
-    "Fully hydrate the most recent world state snapshot and event log."
+    "Fully hydrate the most recent domain state snapshot and event log."
     []
     (let [get-name #(.getName %)
           file-name (-> "data" file file-seq sort reverse first get-name)
@@ -104,14 +109,15 @@
   ; may be called from multiple threads, needs to be done in serial, want a return value to indicate success
   (let [o (Object.)]
     (defn raise!
-      "Raising an event stores it, publishes it, and updates the world model."
-      [event-type event]
+      "Raising an event stores it, publishes it, and updates the aggregate model."
+      [event-type event aggregate-id ]
       (assert @current-label "Must call hydrate or snapshot prior to recording events")
       (locking o
         (let [event (assoc event
                       :event event-type
+                      :aggregate-id aggregate-id
                       :when (java.util.Date.)
                       :seq (swap! event-count inc))]
           (store event)
           (publish event)
-          (swap! world accept event))))))
+          (swap! domain assoc aggregate-id (accept event (get-aggregate aggregate-id))))))))
