@@ -13,7 +13,7 @@
   which is called from raise, or when hydrating an event stream."
   (fn [event aggregate] (:event event)))
 
-(def domain
+(def ^:private domain
   "The domain, the state of everything."
   (atom {}))
 
@@ -90,6 +90,11 @@
           label (.replace file-name ".state" "")]
       (hydrate label)))
 
+  (defn bootstrap
+    "Bring domain up to latest snapshot + events"
+    []
+    (reset! domain (hydrate-latest)))
+
   (defn subscribe
     "Subscribe function f be called on every event raised."
     [f]
@@ -121,3 +126,4 @@
           (store event)
           (publish event)
           (swap! domain assoc aggregate-id (accept event (get-aggregate aggregate-id))))))))
+
