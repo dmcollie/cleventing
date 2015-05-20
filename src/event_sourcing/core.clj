@@ -13,6 +13,10 @@
   which is called from raise, or when hydrating an event stream."
   (fn [event aggregate] (:event event)))
 
+(defmethod accept :default
+  [event aggregate]
+  (throw (ex-info "Unhandled event" {:event event :aggregate aggregate})))
+
 (def ^:private domain
   "The domain, the state of everything."
   (atom {}))

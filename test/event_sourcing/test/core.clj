@@ -37,4 +37,9 @@
     (raise! :replace {} test-aggregate-id)
     (is (= :replaced-world (test-aggregate-id (hydrate "0"))))))
 
+(deftest unhandled-events
+  (testing "Unhandled events"
+    (is (thrown? Exception (accept :the-cake-is-a-lie {} {})))))
+
+
 
