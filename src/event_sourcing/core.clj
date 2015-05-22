@@ -2,7 +2,8 @@
   "Event sourcing http://martinfowler.com/eaaDev/EventSourcing.html"
   (:require [clojure.java.io :refer :all]
             [clojure.pprint]
-            [clojure.edn]))
+            [clojure.edn])
+  (:import (java.io FileNotFoundException)))
 
 
 (defmulti accept
@@ -87,17 +88,13 @@
               (reduce #(assoc %1 (:aggregate-id %2) (accept %2 (get-aggregate (:aggregate-id %2)))) snapshot events))))))
 
   (defn hydrate-latest
-    "Fully hydrate the most recent domain state snapshot and event log."
+    "Fully hydrate the most recent domain state snapshot and event log. If there is no snapshot then make one."
     []
     (let [get-name #(.getName %)
           file-name (-> "data" file file-seq sort reverse first get-name)
           label (.replace file-name ".state" "")]
-      (hydrate label)))
-
-  (defn bootstrap
-    "Bring domain up to latest snapshot + events"
-    []
-    (reset! domain (hydrate-latest)))
+      (try (hydrate label)
+           (catch FileNotFoundException e (snapshot @domain)))))
 
   (defn subscribe
     "Subscribe function f be called on every event raised."
