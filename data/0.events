@@ -1,9 +1,9 @@
 {:seq 1,
- :when #inst "2015-05-22T18:18:52.775-00:00",
+ :when #inst "2015-05-22T18:37:48.596-00:00",
  :aggregate-id :testing,
  :event :test,
  :token 1}
 {:seq 2,
- :when #inst "2015-05-22T18:18:52.818-00:00",
+ :when #inst "2015-05-22T18:37:48.639-00:00",
  :aggregate-id :testing,
  :event :replace}

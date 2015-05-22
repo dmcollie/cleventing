@@ -2,9 +2,7 @@
   "Event sourcing http://martinfowler.com/eaaDev/EventSourcing.html"
   (:require [clojure.java.io :refer :all]
             [clojure.pprint]
-            [clojure.edn])
-  (:import (java.io FileNotFoundException)))
-
+            [clojure.edn]))
 
 (defmulti accept
   "Signature for accepting an event, applying it to world.
@@ -108,6 +106,11 @@
               label (.replace state-filename ".state" "")]
           (hydrate label))
         (snapshot))))
+
+  (defn bootstrap
+    "Bring domain up to latest snapshot + events"
+    []
+    (reset! domain (hydrate-latest)))
 
   (defn subscribe
     "Subscribe function f be called on every event raised."
