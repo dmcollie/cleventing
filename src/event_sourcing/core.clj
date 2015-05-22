@@ -45,9 +45,18 @@
       subscriptions (atom #{})
       events-per-snapshot 20]
 
+  (defn- store-event
+    "Store the event to file, can take nil to init the event file"
+    ([] (store-event nil))
+    ([event]
+     (let [event-file (file "data" (str @current-label ".events"))]
+       (io! (with-open [w (writer event-file :append true)]
+              (when event
+                (clojure.pprint/pprint event w)))))))
+
   (defn snapshot
     "Switches to a new label and writes out the current domain state asynchronously."
-    [domain]
+    []
     (let [sf (java.text.SimpleDateFormat.
               "yyyy_MM_dd__HH_mm_ss__SSS")
           now (java.util.Date.)
@@ -56,19 +65,21 @@
       (reset! current-label label)
       (reset! event-count 0)
       ; write the snapshot asynchronously on another thread to avoid delays
-      ; the domain we are looking at is immutable
+      ; the domain we are looking at is immutable. Also write out a blank event storage
+      ; file
       (future
-        (io! (with-open [w (writer state-file)]
-               (clojure.pprint/pprint domain w))))))
+        (do
+          (io! (with-open [w (writer state-file)]
+                 (clojure.pprint/pprint @domain w)))
+          (store-event)))))
 
   (defn- store
     "Writes an event to file"
     [event]
-    (let [event-file (file "data" (str @current-label ".events"))]
-      (io! (with-open [w (writer event-file :append true)]
-             (clojure.pprint/pprint event w)))
+    (do
+      (store-event event)
       (when (>= (event :seq) events-per-snapshot)
-        (snapshot @domain))))
+        (snapshot))))
 
   (defn hydrate
     "Load domain state and process the event log.
@@ -90,11 +101,13 @@
   (defn hydrate-latest
     "Fully hydrate the most recent domain state snapshot and event log. If there is no snapshot then make one."
     []
-    (let [get-name #(.getName %)
-          file-name (-> "data" file file-seq sort reverse first get-name)
-          label (.replace file-name ".state" "")]
-      (try (hydrate label)
-           (catch FileNotFoundException e (snapshot @domain)))))
+    (let [include-state-only (fn [files] (filter #(.endsWith (.getName %) ".state") files))
+          latest-state-file (-> "data" file file-seq include-state-only sort reverse first)]
+      (if latest-state-file
+        (let [state-filename (.getName latest-state-file)
+              label (.replace state-filename ".state" "")]
+          (hydrate label))
+        (snapshot))))
 
   (defn subscribe
     "Subscribe function f be called on every event raised."
