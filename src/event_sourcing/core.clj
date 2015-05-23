@@ -16,14 +16,12 @@
   [event aggregate]
   (throw (ex-info "Unhandled event" {:event event :aggregate aggregate})))
 
-(def ^:private domain
-  "The domain, the state of everything."
-  (atom {}))
+(defonce ^:private state (atom {}))
 
 (defn get-aggregate
   "Get the aggregate with the given ID"
   [id]
-  (get @domain id))
+  (get @state id))
 
 (let [eof (Object.)]
   (defn- read-all
@@ -68,7 +66,7 @@
       (future
         (do
           (io! (with-open [w (writer state-file)]
-                 (clojure.pprint/pprint @domain w)))
+                 (clojure.pprint/pprint @state w)))
           (store-event)))))
 
   (defn- store
@@ -110,7 +108,7 @@
   (defn bootstrap
     "Bring domain up to latest snapshot + events"
     []
-    (reset! domain (hydrate-latest)))
+    (reset! state (hydrate-latest)))
 
   (defn subscribe
     "Subscribe function f be called on every event raised."
@@ -142,5 +140,5 @@
                       :seq (swap! event-count inc))]
           (store event)
           (publish event)
-          (swap! domain assoc aggregate-id (accept event (get-aggregate aggregate-id))))))))
+          (swap! state assoc aggregate-id (accept event (get-aggregate aggregate-id))))))))
 
