@@ -18,6 +18,11 @@
 
 (defonce ^:private state (atom {}))
 
+(defn get-state
+  "Return the state"
+  []
+  @state)
+
 (defn get-aggregate
   "Get the aggregate with the given ID"
   [id]
