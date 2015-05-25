@@ -18,10 +18,33 @@
 
 (defonce ^:private state (atom {}))
 
-(defn get-state
-  "Return the state"
+(defn create-new-uuid [] (java.util.UUID/randomUUID))
+
+(defn dump-state
+  "Dump the state to allow it to be inspected"
   []
   @state)
+
+(defmulti index-aggregate
+  "Return a set of indicies relevant to the given aggregate.
+  Allows, for example, searching by name."
+  (fn [aggregate] (:aggregate-type aggregate)))
+
+(defmethod index-aggregate :default
+  [_]
+  {})
+
+(defn create-aggregate
+  "Create a new aggregate of type t with map value v"
+  [t v]
+  (let [aggregate-id (create-new-uuid)]
+    (swap! state assoc aggregate-id (merge {:aggregate-type t} v))
+    aggregate-id))
+
+(defn delete-aggregate
+  "Delete the aggregate with the given id"
+  [id]
+  (swap! state dissoc id))
 
 (defn get-aggregate
   "Get the aggregate with the given ID"
