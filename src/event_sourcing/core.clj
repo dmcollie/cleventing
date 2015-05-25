@@ -18,24 +18,10 @@
 
 (defonce ^:private state (atom {}))
 
-(defn create-new-uuid [] (java.util.UUID/randomUUID))
-
-(defn dump-state
-  "Dump the state to allow it to be inspected"
+(defn get-state
+  "Return the state"
   []
   @state)
-
-(defn create-aggregate
-  "Create a new aggregate of type t with map value v"
-  [t v]
-  (let [aggregate-id (create-new-uuid)]
-    (swap! state assoc aggregate-id {:aggregate-type t :value v})
-    aggregate-id))
-
-(defn delete-aggregate
-  "Delete the aggregate with the given id"
-  [id]
-  (swap! state dissoc id))
 
 (defn find-aggregate
   ; TODO possibly naive implementation of # aggregates becomes large
@@ -51,7 +37,7 @@
 (defn get-aggregate
   "Get the aggregate with the given ID"
   [id]
-  (:value (get @state id)))
+  (get @state id))
 
 (let [eof (Object.)]
   (defn- read-all
@@ -170,5 +156,5 @@
                       :seq (swap! event-count inc))]
           (store event)
           (publish event)
-          (swap! state assoc-in [aggregate-id :value] (accept event (get-aggregate aggregate-id))))))))
+          (swap! state assoc aggregate-id (accept event (get-aggregate aggregate-id))))))))
 
