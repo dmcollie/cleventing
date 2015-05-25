@@ -24,7 +24,7 @@
 (use-fixtures :once reset-event-store)
 (deftest raise!-test
   (testing "hydration"
-    (is (= :test-world (test-aggregate-id (hydrate "0")))))
+    (is (= :test-world (:value (test-aggregate-id (hydrate "0"))))))
   (testing "raising events"
     (let [event {:token 1}
           published (atom nil)
@@ -37,9 +37,19 @@
     (raise! :replace {} test-aggregate-id)
     (is (= :replaced-world (test-aggregate-id (hydrate "0"))))))
 
-(deftest unhandled-events
+(deftest unhandled-events-test
   (testing "Unhandled events"
     (is (thrown? Exception (accept :the-cake-is-a-lie {} {})))))
+
+(deftest aggregates-test
+  (testing "create aggregate"
+    (let [aggregate-id (create-aggregate :patient {:name "Dave Collie" :age 47 :gender :male})]
+      (is (= java.util.UUID (type aggregate-id)))
+      (is (= {:name "Dave Collie" :age 47 :gender :male} (get-aggregate aggregate-id)))))
+  (testing "delete aggregate"
+    (let [initial-state (dump-state)
+          aggregate-id (create-aggregate :patient {:name "Dave Collie" :age 47 :gender :male})]
+      (is (= initial-state (delete-aggregate aggregate-id))))))
 
 
 

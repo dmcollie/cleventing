@@ -25,20 +25,11 @@
   []
   @state)
 
-(defmulti index-aggregate
-  "Return a set of indicies relevant to the given aggregate.
-  Allows, for example, searching by name."
-  (fn [aggregate] (:aggregate-type aggregate)))
-
-(defmethod index-aggregate :default
-  [_]
-  {})
-
 (defn create-aggregate
   "Create a new aggregate of type t with map value v"
   [t v]
   (let [aggregate-id (create-new-uuid)]
-    (swap! state assoc aggregate-id (merge {:aggregate-type t} v))
+    (swap! state assoc aggregate-id {:aggregate-type t :value v})
     aggregate-id))
 
 (defn delete-aggregate
@@ -46,10 +37,21 @@
   [id]
   (swap! state dissoc id))
 
+(defn find-aggregate
+  ; TODO possibly naive implementation of # aggregates becomes large
+  "Find the aggregate with matching values (specified as a map).
+  Throw an error if more than one aggregate found."
+  [values]
+  (let [result (filter #(= values (select-keys (@state %) (keys values))) (keys @state))]
+    (cond
+      (= (count result) 1) (first result)
+      (> (count result) 1) (throw (ex-info "Multiple aggregates found when 0 or 1 expected" values))
+      :else nil)))
+
 (defn get-aggregate
   "Get the aggregate with the given ID"
   [id]
-  (get @state id))
+  (:value (get @state id)))
 
 (let [eof (Object.)]
   (defn- read-all
@@ -168,5 +170,5 @@
                       :seq (swap! event-count inc))]
           (store event)
           (publish event)
-          (swap! state assoc aggregate-id (accept event (get-aggregate aggregate-id))))))))
+          (swap! state assoc-in [aggregate-id :value] (accept event (get-aggregate aggregate-id))))))))
 

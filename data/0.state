@@ -1,1 +1,1 @@
-{:testing :test-world}
+{:testing {:value :test-world :aggregate-type :test}}
